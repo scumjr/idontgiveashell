@@ -25,26 +25,15 @@
 #define STUB	"\x55\x48\x89\xe5\x48\xb8\x00\x00\x00\x00\x00\x00\x00\x00\xff\xd0\xc9\xc3"
 
 #ifdef DEBUG
-#define log(M, ...) do {						\
+#define log(fmt, ...) do {						\
 	const char *file;						\
-	if (strrchr(__FILE__, '/') != NULL)				\
-		file = strrchr(__FILE__, '/') + 1;			\
-	else								\
-		file = __FILE__;					\
-	fprintf(stdout, "[%s:%d] " M "\n", file, __LINE__, ##__VA_ARGS__); \
+	file = strrchr(__FILE__, '/');					\
+	file = (file == NULL) ? __FILE__ : file + 1;			\
+	printf("[%s:%d] " fmt "\n", file, __LINE__, ##__VA_ARGS__);	\
 	} while (0)
 #else
-#define log(M, ...) do {} while (0)
+#define log(fmt, ...) do {} while (0)
 #endif
-
-#define error(M, ...) do {						\
-	const char *file;						\
-	if (strrchr(__FILE__, '/') != NULL)				\
-		file = strrchr(__FILE__, '/') + 1;			\
-	else								\
-		file = __FILE__;					\
-	fprintf(stdout, "[%s:%d] " M "%s\n", file, __LINE__, ##__VA_ARGS__, strerror(errno)); \
-	} while (0)
 
 #define MY_FUNCTION(name)	static typeof(*name) my_##name
 
@@ -140,7 +129,7 @@ static ssize_t my_read(int fd, void *buf, size_t count)
 	else
 		size = libdata.size - libdata.current;
 
-	log("magic read, requested size : %ld, i will read %ld", count, size);
+	log("magic read, requested size: %ld, i will read %ld", count, size);
 
 	memcpy(buf, libdata.data + libdata.current, size);
 	libdata.current += size;
@@ -171,7 +160,7 @@ static void *my_mmap(void *addr, size_t length, int prot, int flags, int fd, off
 
 	memcpy(p, libdata.data, length > libdata.size ? libdata.size : length);
 
-	log("mmap : [0x%lx,0x%lx]", (uint64_t)p, (uint64_t)p+length);
+	log("mmap: [0x%lx,0x%lx]", (uint64_t)p, (uint64_t)p+length);
 
 	return p;
 }
@@ -294,7 +283,7 @@ int memdlopen_init(void)
 	log("starting (pid=%d)", getpid());
 
 	if (!find_ld_in_memory(&start, &end)) {
-		error("failed to find ld in memory");
+		warnx("failed to find ld in memory");
 		return 2;
 	}
 
@@ -315,8 +304,6 @@ void memdlopen(size_t size, void *data)
 	libdata.current = 0;
 
 	log("dlopen adress is @ 0x%lx", (uint64_t)dlopen);
-	if (dlopen("./" MAGIC_SO, RTLD_LAZY) == NULL) {
-		error("[-] failed to dlopen : %s", dlerror());
-		exit(1);
-	}
+	if (dlopen("./" MAGIC_SO, RTLD_LAZY) == NULL)
+		errx(1, "failed to dlopen: %s", dlerror());
 }
