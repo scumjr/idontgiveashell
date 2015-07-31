@@ -62,6 +62,7 @@ static void install_syscall_filter(void)
 		ALLOW_SYSCALL(read),
 		ALLOW_SYSCALL(write),
 		ALLOW_SYSCALL(mmap),
+		ALLOW_SYSCALL(munmap),
 		ALLOW_SYSCALL(mprotect),
 		ALLOW_SYSCALL(getcwd),
 		KILL_PROCESS,
