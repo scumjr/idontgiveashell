@@ -3,6 +3,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include <stdarg.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -79,10 +80,17 @@ static size_t page_size;
 
 static int my_open(const char *pathname, int flags, ...)
 {
+	va_list args;
+	int ret;
+
 	log("in my_open");
 
-	if (strstr(pathname, MAGIC_SO) == NULL)
-		return open(pathname, flags);
+	if (strstr(pathname, MAGIC_SO) == NULL) {
+		va_start(args, flags);
+		ret = open(pathname, flags, args);
+		va_end(args);
+		return ret;
+	}
 
 	log("magic open requested, fd is 0x%x", MAGIC_FD);
 
