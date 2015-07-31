@@ -43,8 +43,7 @@
 	fprintf(stdout, "[%s:%d] " M "%s\n", file, __LINE__, ##__VA_ARGS__, strerror(errno)); \
 	} while (0)
 
-#define MY_FUNCTION_(name, x)	static typeof(*name##x) my_##name
-#define MY_FUNCTION(name)	MY_FUNCTION_(name,)
+#define MY_FUNCTION(name)	static typeof(*name) my_##name
 
 MY_FUNCTION(open);
 MY_FUNCTION(lseek);
