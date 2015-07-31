@@ -45,12 +45,10 @@ MY_FUNCTION(mmap);
 MY_FUNCTION(__fxstat);
 MY_FUNCTION(close);
 
-#define STR(s)		#s
-#define XSTR(s)		STR(s)
 #define PATCH(name)	{		\
 	name##_pattern,			\
 	sizeof(name##_pattern)-1,	\
-	XSTR(name),			\
+	#name,				\
 	(uint64_t)&my_##name		\
 }
 
