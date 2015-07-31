@@ -11,11 +11,14 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <linux/limits.h>
 
 #include "memdlopen.h"
 
 #define MAGIC_FD	0x66
 #define MAGIC_SO	"magic.so"
+#define LD_SO		"ld-2.19.so"
+#define MAPS_FMT	"%lx-%lx %4s %*x %*x:%*x %*u %s\n"
 //#define DEBUG
 
 /* push rbp; mov rbp,rsp; movabs rax,0x0000000000000000; call rax; leave; ret */
@@ -250,43 +253,33 @@ static bool search_and_patch(uint64_t start_addr, uint64_t end_addr, struct patc
 	return true;
 }
 
-static bool find_ld_in_memory(uint64_t *addr1, uint64_t *addr2)
+static bool find_ld_in_memory(uint64_t *start, uint64_t *end)
 {
-	char *tmp, *start, *end;
-	char buffer[1024];
+	char execname[PATH_MAX], buffer[1024], prot[5], *p;
 	bool found;
-	FILE *f;
+	FILE *fp;
 
-	f = fopen("/proc/self/maps", "r");
-	if (f == NULL)
+	fp = fopen("/proc/self/maps", "r");
+	if (fp == NULL)
 		err(1, "fopen(\"/proc/self/maps\")");
 
 	found = false;
-	*addr1 = 0;
-	*addr2 = 0;
-	while (fgets(buffer, sizeof(buffer), f)){
-		if (strstr(buffer, "r-xp") == NULL)
+	while (fgets(buffer, sizeof(buffer), fp) != NULL && !found) {
+		if (sscanf(buffer, MAPS_FMT, start, end, prot, execname) != 4)
 			continue;
 
-		if (strstr(buffer, "ld-2.19.so") == NULL)
+		if (strcmp(prot, "r-xp") != 0)
 			continue;
 
-		buffer[strlen(buffer)-1] = 0;
-		tmp = strrchr(buffer, ' ');
-		if (tmp == NULL || tmp[0] != ' ')
+		p = strrchr(execname, '/');
+		p = (p == NULL) ? execname : p + 1;
+		if (strcmp(p, LD_SO) != 0)
 			continue;
-		++tmp;
 
-		start = strtok(buffer, "-");
-		*addr1 = strtoul(start, NULL, 16);
-		end = strtok(NULL, " ");
-		*addr2 = strtoul(end, NULL, 16);
-
-		log("found ld : [%lx,%lx]", *addr1, *addr2);
 		found = true;
 	}
 
-	fclose(f);
+	fclose(fp);
 
 	return found;
 }
