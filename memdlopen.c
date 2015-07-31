@@ -202,11 +202,10 @@ static int my_close(int fd)
 static bool search_and_patch(uint64_t start_addr, uint64_t end_addr, struct patch *patch)
 {
 	uint64_t addr, symbol_addr;
-	size_t stub_length;
+	char code[sizeof(STUB)-1];
 	void *page_addr;
 	int32_t offset;
 	bool found;
-	char *code;
 
 	found = false;
 	for (addr = start_addr; addr + patch->length < end_addr; addr++) {
@@ -226,12 +225,7 @@ static bool search_and_patch(uint64_t start_addr, uint64_t end_addr, struct patc
 	log("offset is %d, %s addr is 0x%lx", offset, patch->symbol, symbol_addr);
 	log("my_%s is @ 0x%lx", patch->symbol, patch->replacement_addr);
 
-	stub_length = sizeof(STUB)-1;
-	code = malloc(stub_length);
-	if (code == NULL)
-		err(1, "malloc");
-
-	memcpy(code, STUB, stub_length);
+	memcpy(code, STUB, sizeof(STUB)-1);
 	memcpy(code + 6, &patch->replacement_addr, sizeof(uint64_t));
 
 	// changing page protection before writting
@@ -240,7 +234,7 @@ static bool search_and_patch(uint64_t start_addr, uint64_t end_addr, struct patc
 	if (mprotect(page_addr, page_size, PROT_READ | PROT_WRITE) != 0)
 		err(1, "mprotect");
 
-	memcpy((void *)symbol_addr, code, stub_length);
+	memcpy((void *)symbol_addr, code, sizeof(STUB)-1);
 
 	if (mprotect(page_addr, page_size, PROT_READ | PROT_EXEC) != 0)
 		err(1, "mprotect");
